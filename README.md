@@ -2,11 +2,22 @@
 
 A native desktop app for [walroos](https://github.com/jefjesuswt/walroos), built in Rust with [GPUI](https://www.gpui.rs) and [gpui-component](https://github.com/longbridge/gpui-kit). It talks to your walroos hub over the tailnet, like the web panel does.
 
-> Early days. It shows your nodes and their health; projects, deploys and logs come next. Linux only for now.
+> Early days. It shows your nodes and projects and deploys, stops and rolls back apps; deployment logs come next. Linux only for now.
 
 ## What it shows
 
-- **Nodes:** every node with its status, roles, CPU, memory and disk. Nodes with problems come first, each problem with its fix. The list refreshes every 10 seconds.
+Two tabs, each refreshed every 10 seconds:
+
+- **Nodes:** every node with its status, roles, CPU, memory and disk. Nodes with problems come first, each problem with its fix.
+- **Projects:** each project with its apps and databases: what each one is doing (running, deploying, stopped, failed…), where it comes from, its domain and its node. A failed deploy or backup shows its error.
+
+If your role is owner or deployer, each app's **⋮** menu can:
+
+- **Deploy** (or **Redeploy**) it.
+- **Restart**, **Stop** or **Start** its running release. Stop asks first: the app stays stopped until you start it or deploy it again.
+- **Roll back…** to an earlier release that deployed fine. Pick one from its recent deployments.
+
+A notification says how each one went.
 
 ## Requirements
 

@@ -1,15 +1,22 @@
+mod actions;
 mod api;
 mod hub;
+mod link;
 mod node_card;
 mod nodes;
+mod page;
+mod projects;
+mod shell;
+mod status;
 
 use gpui_kit::component::theme::Theme;
 use gpui_kit::*;
 
-use nodes::{NodesView, Target};
+use link::{Link, Target};
+use shell::Shell;
 
 fn main() {
-    let target = Target::from_env();
+    let link = Link::new(Target::from_env());
     gpui_kit::application()
         .with_assets(gpui_kit::assets::Assets)
         .run(move |cx| {
@@ -29,7 +36,7 @@ fn main() {
             };
             gpui_kit::open_window(options, cx, |window, cx| {
                 follow_system_theme(window, cx);
-                cx.new(|cx| NodesView::new(target, cx))
+                cx.new(|cx| Shell::new(link, cx))
             })
             .expect("open the window");
         });

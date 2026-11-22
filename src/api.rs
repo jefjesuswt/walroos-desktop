@@ -6,6 +6,14 @@ use serde::Deserialize;
 #[derive(Clone, Debug, Deserialize)]
 pub struct User {
     pub login: String,
+    pub role: String, // owner, deployer, developer
+}
+
+impl User {
+    /// Owners and deployers deploy, stop and roll back apps; developers only look at them.
+    pub fn manages_apps(&self) -> bool {
+        self.role == "owner" || self.role == "deployer"
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -44,6 +52,68 @@ pub struct NodeProblem {
     pub fix: String,
 }
 
+/// A group of apps and databases sharing a podman network on their node.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Project {
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub apps: Vec<App>,
+    #[serde(default)]
+    pub databases: Vec<Database>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct App {
+    pub name: String,
+    pub node_name: String,
+    #[serde(default)]
+    pub repo_url: String, // '' when image is set; both '' = a draft with no source yet
+    #[serde(default)]
+    pub image: String,
+    #[serde(default)]
+    pub branch: String,
+    #[serde(default)]
+    pub domains: Vec<String>,
+    pub last_deployment: Option<Deployment>,
+    pub running: Option<Release>,
+    #[serde(default)]
+    pub node_down: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Deployment {
+    pub id: String,
+    #[serde(default)]
+    pub sha: String,
+    #[serde(default)]
+    pub image: String, // what it ran; a rollback needs it
+    pub state: String, // queued, running, succeeded, failed
+    pub error: Option<String>,
+    #[serde(default)]
+    pub created_at: String,
+}
+
+/// The release the node runs, as its agent reports it.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Release {
+    pub container: String, // <app>-<deployment id>
+    pub state: String,     // systemd ActiveState: active, activating, failed...
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Database {
+    pub name: String,
+    pub node_name: String,
+    pub engine: String,
+    pub version: String,
+    pub state: Option<String>, // systemd ActiveState on the node; 'missing' if the node doesn't have it
+    #[serde(default)]
+    pub node_down: bool,
+    pub last_backup_error: Option<String>,
+}
+
 impl Node {
     /// How urgent the node is to look at: problems first, then offline, pending, online.
     fn urgency(&self) -> u8 {
@@ -59,6 +129,45 @@ impl Node {
 /// Nodes in the order the list shows them: the ones that need you first, then by name.
 pub fn sort_nodes(nodes: &mut [Node]) {
     nodes.sort_by(|a, b| a.urgency().cmp(&b.urgency()).then_with(|| a.name.cmp(&b.name)));
+}
+
+/// Builders the tests share: an app named web on prod-1 with a repo and nothing deployed yet.
+#[cfg(test)]
+pub mod fixtures {
+    use super::{App, Deployment, Release};
+
+    pub fn app() -> App {
+        App {
+            name: "web".into(),
+            node_name: "prod-1".into(),
+            repo_url: "https://github.com/example/web".into(),
+            image: String::new(),
+            branch: "main".into(),
+            domains: vec![],
+            last_deployment: None,
+            running: None,
+            node_down: false,
+        }
+    }
+
+    pub fn deployment(id: &str, state: &str, image: &str) -> Deployment {
+        Deployment {
+            id: id.into(),
+            sha: format!("{id}abcdef"),
+            image: image.into(),
+            state: state.into(),
+            error: None,
+            created_at: "2026-11-22T10:00:00Z".into(),
+        }
+    }
+
+    /// The app's release running on the node, from deployment id.
+    pub fn release(id: &str, state: &str) -> Release {
+        Release {
+            container: format!("web-{id}"),
+            state: state.into(),
+        }
+    }
 }
 
 #[cfg(test)]
