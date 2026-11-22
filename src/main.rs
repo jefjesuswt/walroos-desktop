@@ -1,5 +1,6 @@
 mod actions;
 mod api;
+mod config;
 mod deployments;
 mod hub;
 mod link;
@@ -9,6 +10,7 @@ mod nodes;
 mod page;
 mod projects;
 mod rollback;
+mod settings;
 mod shell;
 mod status;
 mod theme;
@@ -16,11 +18,11 @@ mod when;
 
 use gpui_kit::*;
 
-use link::{Link, Target};
+use link::Link;
 use shell::Shell;
 
 fn main() {
-    let link = Link::new(Target::from_env());
+    let link = Link::new(config::load());
     gpui_kit::application()
         .with_assets(gpui_kit::assets::Assets)
         .run(move |cx| {
@@ -40,7 +42,7 @@ fn main() {
             };
             gpui_kit::open_window(options, cx, |window, cx| {
                 theme::follow_system(window, cx);
-                cx.new(|cx| Shell::new(link, cx))
+                cx.new(|_| Shell::new(link))
             })
             .expect("open the window");
         });
