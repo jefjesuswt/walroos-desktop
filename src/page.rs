@@ -16,12 +16,16 @@ use crate::hub::{Error, Hub};
 use crate::link::Link;
 
 const REFRESH_EVERY: Duration = Duration::from_secs(10);
+/// While something on the page is changing (a deploy running), it refreshes faster.
+const REFRESH_BUSY: Duration = Duration::from_secs(2);
 
 /// What a page is: its title, how to get its data and how to draw it.
 pub struct Spec<T> {
     pub title: &'static str,
     pub fetch: fn(&Hub) -> Result<T, Error>,
     pub body: fn(&T, &Ctx, &App) -> AnyElement,
+    /// Whether the data is in the middle of changing, so the page refreshes faster.
+    pub settling: fn(&T) -> bool,
 }
 
 /// What a page's body needs to act on what it shows: the hub, whether you may change apps, and
@@ -38,7 +42,8 @@ pub struct Page<T: 'static> {
     link: Link,
     data: Option<T>, // None until the first answer
     error: Option<String>,
-    loading: bool,
+    busy: bool,     // a request is out
+    spinning: bool, // you asked for it: the Refresh button shows it; polling stays quiet
     _poll: Task<()>,
 }
 
@@ -46,10 +51,13 @@ impl<T: Send + 'static> Page<T> {
     pub fn new(spec: Spec<T>, link: Link, cx: &mut Context<Self>) -> Self {
         let poll = cx.spawn(async move |this, cx| {
             loop {
-                if this.update(cx, |p, cx| p.refresh(cx)).is_err() {
+                let Ok(wait) = this.update(cx, |p, cx| {
+                    p.refresh(cx);
+                    p.wait()
+                }) else {
                     break; // the page is gone
-                }
-                cx.background_executor().timer(REFRESH_EVERY).await;
+                };
+                cx.background_executor().timer(wait).await;
             }
         });
         Page {
@@ -57,17 +65,24 @@ impl<T: Send + 'static> Page<T> {
             link,
             data: None,
             error: None,
-            loading: false,
+            busy: false,
+            spinning: false,
             _poll: poll,
         }
     }
 
+    fn wait(&self) -> Duration {
+        match &self.data {
+            Some(data) if (self.spec.settling)(data) => REFRESH_BUSY,
+            _ => REFRESH_EVERY,
+        }
+    }
+
     fn refresh(&mut self, cx: &mut Context<Self>) {
-        if self.loading {
+        if self.busy {
             return;
         }
-        self.loading = true;
-        cx.notify();
+        self.busy = true;
         let (link, fetch) = (self.link.clone(), self.spec.fetch);
         let task = cx.background_spawn(async move { link.call(fetch) });
         cx.spawn(async move |this, cx| {
@@ -78,7 +93,8 @@ impl<T: Send + 'static> Page<T> {
     }
 
     fn apply(&mut self, result: Result<T, Error>, cx: &mut Context<Self>) {
-        self.loading = false;
+        self.busy = false;
+        self.spinning = false;
         match result {
             Ok(data) => {
                 self.data = Some(data);
@@ -107,8 +123,12 @@ impl<T: Send + 'static> Page<T> {
                 Button::new("refresh")
                     .outline()
                     .label("Refresh")
-                    .loading(self.loading)
-                    .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
+                    .loading(self.spinning)
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.spinning = true;
+                        cx.notify();
+                        this.refresh(cx);
+                    })),
             )
     }
 

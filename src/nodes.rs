@@ -16,6 +16,7 @@ pub fn spec() -> Spec<Vec<Node>> {
             Ok(nodes)
         },
         body: |nodes, _, cx| body(nodes, cx),
+        settling: |_| false,
     }
 }
 

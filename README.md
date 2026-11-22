@@ -2,22 +2,27 @@
 
 A native desktop app for [walroos](https://github.com/jefjesuswt/walroos), built in Rust with [GPUI](https://www.gpui.rs) and [gpui-component](https://github.com/longbridge/gpui-kit). It talks to your walroos hub over the tailnet, like the web panel does.
 
-> Early days. It shows your nodes and projects and deploys, stops and rolls back apps; deployment logs come next. Linux only for now.
+> Early days. It shows your nodes, projects and deployments with their logs, and deploys, stops and rolls back apps. Linux only for now.
 
 ## What it shows
 
-Two tabs, each refreshed every 10 seconds:
+Three tabs, each refreshed every 10 seconds (every 2 while a deploy runs):
 
 - **Nodes:** every node with its status, roles, CPU, memory and disk. Nodes with problems come first, each problem with its fix.
 - **Projects:** each project with its apps and databases: what each one is doing (running, deploying, stopped, failed…), where it comes from, its domain and its node. A failed deploy or backup shows its error.
+- **Deployments:** every deploy of every app, newest first, with its state, commit, start time, how long it took and why it failed. Click one to read its build log.
 
-If your role is owner or deployer, each app's **⋮** menu can:
+Logs open in a panel on the right and follow the newest line. A running deploy's log updates live; an app's own logs (the last 300 lines of its running release) refresh every 5 seconds.
 
-- **Deploy** (or **Redeploy**) it.
+Each app's **⋮** menu opens its **Logs** and its **Last deploy log**. If your role is owner or deployer, it can also:
+
+- **Deploy** (or **Redeploy**) it. Its build log opens right away.
 - **Restart**, **Stop** or **Start** its running release. Stop asks first: the app stays stopped until you start it or deploy it again.
-- **Roll back…** to an earlier release that deployed fine. Pick one from its recent deployments.
+- **Roll back…** to an earlier release that deployed fine. Pick one from its recent deployments; its log opens too.
 
 A notification says how each one went.
+
+The app follows your desktop: light or dark, and on Linux the UI font from your GTK/GNOME settings (`gsettings get org.gnome.desktop.interface font-name`, or fontconfig's `sans-serif`). If that font is installed only as a variable font, bold text shows at its regular weight. Installing its static files (Medium, SemiBold, Bold) fixes it.
 
 ## Requirements
 
