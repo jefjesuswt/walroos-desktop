@@ -82,9 +82,10 @@ pub struct App {
     pub node_down: bool,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct Deployment {
     pub id: String,
+    pub app_name: Option<String>, // only in the all-apps list
     #[serde(default)]
     pub sha: String,
     #[serde(default)]
@@ -93,6 +94,9 @@ pub struct Deployment {
     pub error: Option<String>,
     #[serde(default)]
     pub created_at: String,
+    pub finished_at: Option<String>,
+    #[serde(default)]
+    pub log: String, // only when getting one deployment
 }
 
 /// The release the node runs, as its agent reports it.
@@ -158,6 +162,7 @@ pub mod fixtures {
             state: state.into(),
             error: None,
             created_at: "2026-11-22T10:00:00Z".into(),
+            ..Default::default()
         }
     }
 

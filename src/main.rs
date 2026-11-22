@@ -1,14 +1,18 @@
 mod actions;
 mod api;
+mod deployments;
 mod hub;
 mod link;
+mod log_view;
 mod node_card;
 mod nodes;
 mod page;
 mod projects;
+mod rollback;
 mod shell;
 mod status;
 mod theme;
+mod when;
 
 use gpui_kit::*;
 

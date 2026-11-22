@@ -7,9 +7,9 @@ use gpui_kit::*;
 
 use crate::link::Link;
 use crate::page::Page;
-use crate::{nodes, projects};
+use crate::{deployments, nodes, projects};
 
-const TABS: [&str; 2] = ["Nodes", "Projects"];
+const TABS: [&str; 3] = ["Nodes", "Projects", "Deployments"];
 
 pub struct Shell {
     link: Link,
@@ -44,7 +44,8 @@ fn open(tab: usize, link: &Link, cx: &mut App) -> AnyView {
     let link = link.clone();
     match tab {
         0 => cx.new(|cx| Page::new(nodes::spec(), link, cx)).into(),
-        _ => cx.new(|cx| Page::new(projects::spec(), link, cx)).into(),
+        1 => cx.new(|cx| Page::new(projects::spec(), link, cx)).into(),
+        _ => cx.new(|cx| Page::new(deployments::spec(), link, cx)).into(),
     }
 }
 

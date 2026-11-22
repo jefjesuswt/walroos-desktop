@@ -14,6 +14,12 @@ pub fn spec() -> Spec<Vec<Project>> {
         title: "Projects",
         fetch: |hub| hub.projects(),
         body: |projects, ctx, cx| body(projects, ctx, cx),
+        settling: |projects| {
+            projects
+                .iter()
+                .flat_map(|p| &p.apps)
+                .any(|a| app_state(a).raw == "deploying")
+        },
     }
 }
 
@@ -56,7 +62,7 @@ fn app_service(a: &AppService, ctx: &Ctx) -> Service {
                 d.error.as_deref().unwrap_or("no error saved")
             )
         }),
-        menu: ctx.manages_apps.then(|| app_menu(a, ctx)),
+        menu: Some(app_menu(a, ctx)),
     }
 }
 

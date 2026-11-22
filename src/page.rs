@@ -16,12 +16,16 @@ use crate::hub::{Error, Hub};
 use crate::link::Link;
 
 const REFRESH_EVERY: Duration = Duration::from_secs(10);
+/// While something on the page is changing (a deploy running), it refreshes faster.
+const REFRESH_BUSY: Duration = Duration::from_secs(2);
 
 /// What a page is: its title, how to get its data and how to draw it.
 pub struct Spec<T> {
     pub title: &'static str,
     pub fetch: fn(&Hub) -> Result<T, Error>,
     pub body: fn(&T, &Ctx, &App) -> AnyElement,
+    /// Whether the data is in the middle of changing, so the page refreshes faster.
+    pub settling: fn(&T) -> bool,
 }
 
 /// What a page's body needs to act on what it shows: the hub, whether you may change apps, and
@@ -47,10 +51,13 @@ impl<T: Send + 'static> Page<T> {
     pub fn new(spec: Spec<T>, link: Link, cx: &mut Context<Self>) -> Self {
         let poll = cx.spawn(async move |this, cx| {
             loop {
-                if this.update(cx, |p, cx| p.refresh(cx)).is_err() {
+                let Ok(wait) = this.update(cx, |p, cx| {
+                    p.refresh(cx);
+                    p.wait()
+                }) else {
                     break; // the page is gone
-                }
-                cx.background_executor().timer(REFRESH_EVERY).await;
+                };
+                cx.background_executor().timer(wait).await;
             }
         });
         Page {
@@ -61,6 +68,13 @@ impl<T: Send + 'static> Page<T> {
             busy: false,
             spinning: false,
             _poll: poll,
+        }
+    }
+
+    fn wait(&self) -> Duration {
+        match &self.data {
+            Some(data) if (self.spec.settling)(data) => REFRESH_BUSY,
+            _ => REFRESH_EVERY,
         }
     }
 

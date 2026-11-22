@@ -148,20 +148,38 @@ impl Hub {
         self.get("/api/projects")
     }
 
-    pub fn deploy(&self, app: &str) -> Result<(), Error> {
+    pub fn deploy(&self, app: &str) -> Result<Deployment, Error> {
         self.post(&format!("/api/apps/{app}/deploy"), json!({ "sha": "" }))
     }
 
     /// action is stop, start or restart.
     pub fn power(&self, app: &str, action: &str) -> Result<(), Error> {
-        self.post(&format!("/api/apps/{app}/power"), json!({ "action": action }))
+        self.post::<IgnoredAny>(&format!("/api/apps/{app}/power"), json!({ "action": action }))
+            .map(|_| ())
     }
 
     pub fn deployments(&self, app: &str) -> Result<Vec<Deployment>, Error> {
         self.get(&format!("/api/apps/{app}/deployments"))
     }
 
-    pub fn rollback(&self, app: &str, deployment: &str) -> Result<(), Error> {
+    /// Every deploy of every app, newest first.
+    pub fn all_deployments(&self) -> Result<Vec<Deployment>, Error> {
+        self.get("/api/deployments")
+    }
+
+    /// One deployment, with its build log.
+    pub fn deployment(&self, app: &str, id: &str) -> Result<Deployment, Error> {
+        self.get(&format!("/api/apps/{app}/deployments/{id}"))
+    }
+
+    /// The last lines the app's running release wrote.
+    pub fn app_logs(&self, app: &str, lines: u32) -> Result<String, Error> {
+        let path = format!("/api/apps/{app}/logs?lines={lines}");
+        let resp = self.agent.get(&format!("{}{path}", self.url)).call();
+        self.answer(resp, &path, false)
+    }
+
+    pub fn rollback(&self, app: &str, deployment: &str) -> Result<Deployment, Error> {
         self.post(
             &format!("/api/apps/{app}/deployments/{deployment}/rollback"),
             json!({}),
@@ -174,33 +192,36 @@ impl Hub {
             .get(&format!("{}{path}", self.url))
             .header("Accept", "application/json")
             .call();
-        self.answer(resp, path, false)
+        self.json(self.answer(resp, path, false)?, path)
     }
 
-    /// A change: what the hub answers with isn't needed, the next refresh shows it.
-    fn post(&self, path: &str, body: serde_json::Value) -> Result<(), Error> {
+    fn post<T: DeserializeOwned>(&self, path: &str, body: serde_json::Value) -> Result<T, Error> {
         let resp = self
             .agent
             .post(&format!("{}{path}", self.url))
             .header("Accept", "application/json")
             .send_json(body);
-        self.answer::<IgnoredAny>(resp, path, true).map(|_| ())
+        self.json(self.answer(resp, path, true)?, path)
     }
 
-    fn answer<T: DeserializeOwned>(
+    fn json<T: DeserializeOwned>(&self, body: String, path: &str) -> Result<T, Error> {
+        let body = if body.is_empty() { "null" } else { &body };
+        serde_json::from_str(body)
+            .map_err(|e| Error::Answer(format!("{} answered {path} with something else: {e}", self.url)))
+    }
+
+    /// The body of a 2xx answer, or what went wrong.
+    fn answer(
         &self,
         resp: Result<ureq::http::Response<ureq::Body>, ureq::Error>,
         path: &str,
         change: bool,
-    ) -> Result<T, Error> {
+    ) -> Result<String, Error> {
         let mut resp = resp.map_err(|e| Error::Unreachable(e.to_string()))?;
         let status = resp.status().as_u16();
         let body = resp.body_mut().read_to_string().unwrap_or_default();
         if (200..300).contains(&status) {
-            let body = if body.is_empty() { "null" } else { &body };
-            return serde_json::from_str(body).map_err(|e| {
-                Error::Answer(format!("{} answered {path} with something else: {e}", self.url))
-            });
+            return Ok(body);
         }
         let said = serde_json::from_str::<serde_json::Value>(&body)
             .ok()

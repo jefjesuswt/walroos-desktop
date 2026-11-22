@@ -11,6 +11,7 @@ use gpui_kit::*;
 use crate::api::Node;
 use crate::page::card;
 use crate::status::status_tag;
+use crate::when;
 
 pub fn node_card(n: &Node, cx: &App) -> impl IntoElement {
     let t = &n.telemetry;
@@ -28,7 +29,7 @@ pub fn node_card(n: &Node, cx: &App) -> impl IntoElement {
         facts.push(format!("{} containers", t.containers));
     }
     if let (Some(seen), "offline") = (&n.last_seen, n.status.as_str()) {
-        facts.push(format!("last seen {}", short_time(seen)));
+        facts.push(format!("last seen {}", when::short(seen)));
     }
     card(cx)
         .child(
@@ -116,10 +117,4 @@ fn pct(used: u64, total: u64) -> f32 {
 
 fn gb_of(used: f64, total: f64) -> String {
     format!("{used:.1} / {total:.0} GB")
-}
-
-/// 2026-11-20T08:30:00Z → 2026-11-20 08:30.
-// ponytail: shows the hub's timestamp as it comes, without converting it to local time.
-fn short_time(ts: &str) -> String {
-    ts.get(..16).unwrap_or(ts).replace('T', " ")
 }
