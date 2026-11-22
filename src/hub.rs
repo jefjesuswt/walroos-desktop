@@ -103,7 +103,7 @@ fn connect_with(hub: &str, proxy: Option<&str>, default_proxy: &str) -> Result<(
         }
     }
     Err(Error::Unreachable(format!(
-        "reach {url}: {direct_err} (is this machine on the tailnet? With userspace tailscaled, its proxy must be up: WALROOS_PROXY={DEFAULT_PROXY})"
+        "reach {url}: {direct_err} (is the hub's name right in Settings, and this machine on the tailnet? With userspace tailscaled, its proxy must be up: WALROOS_PROXY={DEFAULT_PROXY})"
     )))
 }
 

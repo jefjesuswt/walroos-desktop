@@ -110,15 +110,7 @@ impl<T: Send + 'static> Page<T> {
             .justify_between()
             .items_center()
             .gap_4()
-            .child(
-                v_flex()
-                    .child(Label::new(self.spec.title).text_xl().font_semibold())
-                    .child(
-                        Label::new(self.link.describe())
-                            .text_sm()
-                            .text_color(cx.theme().muted_foreground),
-                    ),
-            )
+            .child(heading(self.spec.title, self.link.describe(), cx))
             .child(
                 Button::new("refresh")
                     .outline()
@@ -178,6 +170,15 @@ impl<T: Send + 'static> Render for Page<T> {
                     .child(self.body(cx)),
             )
     }
+}
+
+/// A page's title, with a muted line under it.
+pub fn heading(title: &'static str, under: String, cx: &App) -> Div {
+    v_flex().child(Label::new(title).text_xl().font_semibold()).child(
+        Label::new(under)
+            .text_sm()
+            .text_color(cx.theme().muted_foreground),
+    )
 }
 
 /// A muted line of text for an empty list.

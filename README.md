@@ -42,17 +42,17 @@ Download the package for your distro from the [latest release](https://github.co
 
 Then open **walroos** from your app launcher, or run `walroos-desktop`.
 
-It looks for the hub at `walroos-hub`, the hub's default name on the tailnet (`walroos hub --hostname`). If yours has another name, start it with `WALROOS_HUB`:
+It looks for the hub at `walroos-hub`, the hub's default name on the tailnet (`walroos hub --hostname`). If yours has another name, open **Settings**, type it in **Hub** and press **Connect and save**. The app reaches the hub with it first and only saves it when the hub answers, in `~/.config/walroos-desktop/config.json`.
+
+`WALROOS_HUB` and `WALROOS_PROXY`, when set, win over the saved settings for that run:
 
 ```bash
 WALROOS_HUB=my-hub walroos-desktop
 ```
 
-To set it for the launcher too, put `WALROOS_HUB=my-hub` in `~/.config/environment.d/walroos.conf` and log in again.
-
 ### Reaching the hub
 
-The app tries the tailnet directly first. If that fails and tailscaled runs in userspace mode (for example next to another VPN), it goes through tailscaled's proxy on `localhost:1055`, like `walroos ui` and `walroos ssh-config` do. To use another proxy, set `WALROOS_PROXY=host:port`; then it only goes through that one.
+The app tries the tailnet directly first. If that fails and tailscaled runs in userspace mode (for example next to another VPN), it goes through tailscaled's proxy on `localhost:1055`, like `walroos ui` and `walroos ssh-config` do. To use another proxy, put it in **Proxy** in Settings (or set `WALROOS_PROXY=host:port`); then it only goes through that one.
 
 If the app can't reach the hub, it says why. You can also run `walroos ui` and open the panel in your browser instead.
 

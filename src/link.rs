@@ -5,37 +5,37 @@ use std::sync::{Arc, Mutex};
 use crate::api::User;
 use crate::hub::{self, Error, Hub};
 
-/// Where to find the hub: WALROOS_HUB and WALROOS_PROXY, as `walroos ui` takes --hub and --proxy.
-#[derive(Clone)]
+/// Where to find the hub, as `walroos ui` takes --hub and --proxy (see config for where it comes from).
+#[derive(Clone, Debug, PartialEq)]
 pub struct Target {
     pub hub: String,
     pub proxy: Option<String>,
-}
-
-impl Target {
-    pub fn from_env() -> Target {
-        let var = |k| std::env::var(k).ok().filter(|v: &String| !v.is_empty());
-        Target {
-            hub: var("WALROOS_HUB").unwrap_or_else(|| "walroos-hub".into()),
-            proxy: var("WALROOS_PROXY"),
-        }
-    }
 }
 
 type Conn = Option<(Arc<Hub>, User)>;
 
 #[derive(Clone)]
 pub struct Link {
-    target: Target,
+    target: Arc<Mutex<Target>>,
     conn: Arc<Mutex<Conn>>,
 }
 
 impl Link {
     pub fn new(target: Target) -> Link {
         Link {
-            target,
+            target: Arc::new(Mutex::new(target)),
             conn: Arc::default(),
         }
+    }
+
+    pub fn target(&self) -> Target {
+        self.target.lock().unwrap().clone()
+    }
+
+    /// Points every page at another hub, already reached (Settings checks it before saving).
+    pub fn switch(&self, target: Target, hub: Hub, me: User) {
+        *self.target.lock().unwrap() = target;
+        *self.conn.lock().unwrap() = Some((Arc::new(hub), me));
     }
 
     /// Runs f against the hub, reaching it first if needed. Blocks: call it on a background thread.
@@ -46,7 +46,8 @@ impl Link {
         let hub = match current {
             Some((h, _)) => h,
             None => {
-                let (h, me) = hub::connect(&self.target.hub, self.target.proxy.as_deref())?;
+                let t = self.target();
+                let (h, me) = hub::connect(&t.hub, t.proxy.as_deref())?;
                 let h = Arc::new(h);
                 *self.conn.lock().unwrap() = Some((h.clone(), me));
                 h
@@ -71,7 +72,7 @@ impl Link {
                 Some(p) => format!("{} as {}, through tailscaled's proxy at {p}", h.url, me.login),
                 None => format!("{} as {}", h.url, me.login),
             },
-            None => format!("Reaching {}…", hub::hub_url(&self.target.hub)),
+            None => format!("Reaching {}…", hub::hub_url(&self.target().hub)),
         }
     }
 }
