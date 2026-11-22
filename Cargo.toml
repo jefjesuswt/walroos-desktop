@@ -1,0 +1,15 @@
+[package]
+name = "walroos-desktop"
+version = "0.1.0"
+edition = "2024"
+description = "Native desktop app for walroos, built with GPUI"
+license = "MIT"
+repository = "https://github.com/jefjesuswt/walroos-desktop"
+publish = false
+
+[dependencies]
+# GPUI moves fast and breaks between snapshots: pin exactly and upgrade in a PR of its own.
+gpui-kit = "=0.10.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+ureq = { version = "3.5", features = ["json"] }
