@@ -26,12 +26,14 @@ pub enum Error {
     Unreachable(String),
     /// The hub answered but said no. Trying another way won't help.
     Answer(String),
+    /// A hub answered and doesn't know you: it's a hub, your login just isn't on it.
+    Stranger(String),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Unreachable(m) | Error::Answer(m) => f.write_str(m),
+            Error::Unreachable(m) | Error::Answer(m) | Error::Stranger(m) => f.write_str(m),
         }
     }
 }
@@ -98,8 +100,8 @@ fn connect_with(hub: &str, proxy: Option<&str>, default_proxy: &str) -> Result<(
         let h = Hub::new(&url, Some(default_proxy), TIMEOUT)?;
         match h.me() {
             Ok(me) => return Ok((h, me)),
-            Err(Error::Answer(m)) => return Err(Error::Answer(m)),
             Err(Error::Unreachable(_)) => {}
+            Err(answer) => return Err(answer),
         }
     }
     Err(Error::Unreachable(format!(
@@ -196,12 +198,33 @@ impl Hub {
     }
 
     fn post<T: DeserializeOwned>(&self, path: &str, body: serde_json::Value) -> Result<T, Error> {
+        let url = format!("{}{path}", self.url);
         let resp = self
             .agent
-            .post(&format!("{}{path}", self.url))
+            .post(&url)
             .header("Accept", "application/json")
             .send_json(body);
         self.json(self.answer(resp, path, true)?, path)
+    }
+
+    fn put<T: DeserializeOwned>(&self, path: &str, body: serde_json::Value) -> Result<T, Error> {
+        let url = format!("{}{path}", self.url);
+        let resp = self
+            .agent
+            .put(&url)
+            .header("Accept", "application/json")
+            .send_json(body);
+        self.json(self.answer(resp, path, true)?, path)
+    }
+
+    fn delete(&self, path: &str) -> Result<(), Error> {
+        let url = format!("{}{path}", self.url);
+        let resp = self
+            .agent
+            .delete(&url)
+            .header("Accept", "application/json")
+            .call();
+        self.answer(resp, path, true).map(|_| ())
     }
 
     fn json<T: DeserializeOwned>(&self, body: String, path: &str) -> Result<T, Error> {
@@ -233,12 +256,16 @@ impl Hub {
                 self.url
             )),
             // A change your role can't make is a 403 too: say what the hub said.
-            401 | 403 if !change => Error::Answer(format!("the hub doesn't know you: {said}")),
+            401 | 403 if !change && !said.is_empty() => {
+                Error::Stranger(format!("the hub doesn't know you: {said}"))
+            }
+            401 | 403 if !change => Error::Answer(format!("{} answered {status} to {path}", self.url)),
             _ if !said.is_empty() => Error::Answer(said),
             _ => Error::Answer(format!("{} answered {status} to {path}", self.url)),
         })
     }
 }
 
+mod settings;
 #[cfg(test)]
 mod tests;

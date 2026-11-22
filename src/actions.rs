@@ -167,16 +167,37 @@ fn confirm_stop(a: &AppService, ctx: &Ctx, window: &mut Window, cx: &mut App) {
         "It stops answering{domains}. It stays stopped, even when {} restarts, until you start it or deploy it again.",
         a.node_name
     );
+    let title = format!("Stop {}?", a.name);
+    confirm(
+        title,
+        text,
+        "Stop",
+        move |w, cx| power(&a, &ctx, "stop", w, cx),
+        window,
+        cx,
+    );
+}
+
+/// Asks before something hard to undo; `then` runs on OK.
+pub fn confirm(
+    title: String,
+    text: String,
+    ok: &'static str,
+    then: impl Fn(&mut Window, &mut App) + 'static,
+    window: &mut Window,
+    cx: &mut App,
+) {
+    let then = std::rc::Rc::new(then);
     window.open_alert_dialog(cx, move |dialog, _, _| {
-        let (a, ctx) = (a.clone(), ctx.clone());
+        let then = then.clone();
         dialog
-            .title(format!("Stop {}?", a.name))
+            .title(title.clone())
             .description(text.clone())
-            .ok_text("Stop")
+            .ok_text(ok)
             .ok_variant(ButtonVariant::Danger)
             .show_cancel(true)
             .on_ok(move |_, window, cx| {
-                power(&a, &ctx, "stop", window, cx);
+                then(window, cx);
                 true
             })
     });

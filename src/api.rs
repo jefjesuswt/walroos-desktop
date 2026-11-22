@@ -14,6 +14,11 @@ impl User {
     pub fn manages_apps(&self) -> bool {
         self.role == "owner" || self.role == "deployer"
     }
+
+    /// Owners manage the hub itself: users, tokens, nodes.
+    pub fn owns_hub(&self) -> bool {
+        self.role == "owner"
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -213,4 +218,49 @@ mod tests {
         let names: Vec<_> = nodes.iter().map(|n| n.name.as_str()).collect();
         assert_eq!(names, ["build-1", "old-1", "dev-1", "prod-1"]);
     }
+}
+
+/// Someone who may use the hub.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Member {
+    pub login: String,
+    pub role: String,
+    #[serde(default)]
+    pub created_at: String,
+}
+
+pub const ROLES: [(&str, &str); 3] = [
+    (
+        "owner",
+        "Everything: nodes, tokens, users and anyone's workspaces.",
+    ),
+    ("deployer", "Their workspaces, plus apps and databases."),
+    (
+        "developer",
+        "Their own workspaces. Sees apps and logs, can't deploy.",
+    ),
+];
+
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(default)]
+pub struct Cloudflare {
+    pub configured: bool,
+    pub zones: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(default)]
+pub struct GitHub {
+    pub configured: bool,
+    pub login: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct SshKey {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub fingerprint: String,
+    #[serde(default)]
+    pub created_at: String,
 }
