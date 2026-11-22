@@ -1,4 +1,4 @@
-//! One node of the Nodes screen: status, roles, what it runs, its meters and its problems.
+//! One node of the Nodes page: status, roles, what it runs, its meters and its problems.
 
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::label::Label;
@@ -9,17 +9,12 @@ use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::*;
 
 use crate::api::Node;
+use crate::page::card;
+use crate::status::status_tag;
 
 pub fn node_card(n: &Node, cx: &App) -> impl IntoElement {
     let t = &n.telemetry;
-    let status = match n.status.as_str() {
-        "online" => Tag::success(),
-        "offline" => Tag::danger(),
-        _ => Tag::warning(),
-    }
-    .small()
-    .outline()
-    .child(n.status.clone());
+    let status = status_tag(&n.status, n.status.clone());
     let mut facts = vec![format!("{}/{}", t.os, t.arch)];
     if !t.walroos.is_empty() {
         facts.push(format!("walroos {}", t.walroos));
@@ -35,13 +30,7 @@ pub fn node_card(n: &Node, cx: &App) -> impl IntoElement {
     if let (Some(seen), "offline") = (&n.last_seen, n.status.as_str()) {
         facts.push(format!("last seen {}", short_time(seen)));
     }
-    v_flex()
-        .gap_3()
-        .p_4()
-        .border_1()
-        .border_color(cx.theme().border)
-        .rounded(cx.theme().radius)
-        .bg(cx.theme().group_box)
+    card(cx)
         .child(
             h_flex()
                 .gap_2()

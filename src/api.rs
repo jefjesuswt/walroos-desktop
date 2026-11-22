@@ -44,6 +44,60 @@ pub struct NodeProblem {
     pub fix: String,
 }
 
+/// A group of apps and databases sharing a podman network on their node.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Project {
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub apps: Vec<App>,
+    #[serde(default)]
+    pub databases: Vec<Database>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct App {
+    pub name: String,
+    pub node_name: String,
+    #[serde(default)]
+    pub repo_url: String, // '' when image is set; both '' = a draft with no source yet
+    #[serde(default)]
+    pub image: String,
+    #[serde(default)]
+    pub branch: String,
+    #[serde(default)]
+    pub domains: Vec<String>,
+    pub last_deployment: Option<Deployment>,
+    pub running: Option<Release>,
+    #[serde(default)]
+    pub node_down: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Deployment {
+    pub state: String, // queued, running, succeeded, failed
+    pub error: Option<String>,
+}
+
+/// The release the node runs, as its agent reports it.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Release {
+    pub state: String, // systemd ActiveState: active, activating, failed...
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Database {
+    pub name: String,
+    pub node_name: String,
+    pub engine: String,
+    pub version: String,
+    pub state: Option<String>, // systemd ActiveState on the node; 'missing' if the node doesn't have it
+    #[serde(default)]
+    pub node_down: bool,
+    pub last_backup_error: Option<String>,
+}
+
 impl Node {
     /// How urgent the node is to look at: problems first, then offline, pending, online.
     fn urgency(&self) -> u8 {

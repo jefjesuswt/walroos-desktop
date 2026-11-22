@@ -11,7 +11,7 @@ use std::time::Duration;
 use serde::de::DeserializeOwned;
 use ureq::{Agent, Proxy};
 
-use crate::api::{Node, User};
+use crate::api::{Node, Project, User};
 
 /// Where tailscaled in userspace mode serves its HTTP/SOCKS5 proxy (the port its docs use).
 pub const DEFAULT_PROXY: &str = "localhost:1055";
@@ -141,6 +141,10 @@ impl Hub {
 
     pub fn nodes(&self) -> Result<Vec<Node>, Error> {
         self.get("/api/nodes")
+    }
+
+    pub fn projects(&self) -> Result<Vec<Project>, Error> {
+        self.get("/api/projects")
     }
 
     fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, Error> {
