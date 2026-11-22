@@ -21,10 +21,13 @@ Native desktop app for [walroos](https://github.com/jefjesuswt/walroos), in Rust
 - Commits: conventional (`feat:`, `fix:` …), on a branch, not `main`.
 - **The repo is public.** Never write the owner's machine names, hostnames, IPs or domains into tracked files, commits or PRs. Use stand-ins (`walroos-hub`, `prod-1`, `100.64.0.x`).
 
+- **Packaging:** cargo-packager, configured in `Cargo.toml` (`[package.metadata.packager]`). `scripts/release.sh vX.Y.Z` builds `dist/` and patches two packager quirks (linuxdeploy's strip, the PKGBUILD's `package()`); a `v*` tag runs it in `.github/workflows/release.yml` on Ubuntu 22.04. The icon is walroos' `favicon.svg`, rendered to `assets/icons/*.png`: don't redraw it.
+
 ## Commands
 
 ```bash
 cargo run                                   # WALROOS_HUB=<hub> WALROOS_PROXY=<host:port> to override
 cargo test
 cargo fmt --check && cargo clippy --all-targets -- -D warnings
+scripts/release.sh v0.1.0                   # packages into dist/ (cargo install cargo-packager --locked)
 ```

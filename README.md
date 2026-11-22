@@ -27,28 +27,28 @@ The app follows your desktop: light or dark, and on Linux the UI font from your 
 ## Requirements
 
 - A walroos hub, and this machine on the same tailnet. The hub knows you by your Tailscale identity, so there is nothing to log in to.
-- Rust (latest stable).
-- On Linux, a Wayland or X11 desktop with Vulkan drivers, and the development libraries GPUI builds against. On Debian or Ubuntu:
+- Linux with a Wayland or X11 desktop and Vulkan drivers (Mesa's are fine). macOS and Windows builds come later.
 
-  ```bash
-  sudo apt install libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libx11-xcb-dev libxcb1-dev libfontconfig-dev libfreetype-dev libvulkan-dev
-  ```
+## Install
 
-  On Arch: `sudo pacman -S libxkbcommon libxkbcommon-x11 wayland libxcb fontconfig freetype2 vulkan-icd-loader`.
+Download the package for your distro from the [latest release](https://github.com/jefjesuswt/walroos-desktop/releases/latest), and check it against `SHA256SUMS`:
 
-## Run it
+| Distro | File | Install |
+| --- | --- | --- |
+| Debian, Ubuntu | `walroos-desktop_<version>_amd64.deb` | `sudo apt install ./walroos-desktop_<version>_amd64.deb` |
+| Arch | `walroos-desktop_<version>_x86_64.tar.gz` and `PKGBUILD` | `makepkg -si` in a folder with both |
+| Any | `walroos-desktop_<version>_x86_64.AppImage` | `chmod +x` it and run it |
+| Any | `walroos-desktop_<version>_x86_64.tar.gz` | `tar xzf walroos-desktop_<version>_x86_64.tar.gz -C ~/.local --strip-components=1` |
 
-```bash
-git clone https://github.com/jefjesuswt/walroos-desktop
-cd walroos-desktop
-cargo run --release
-```
+Then open **walroos** from your app launcher, or run `walroos-desktop`.
 
-It looks for the hub at `walroos-hub`, the hub's default name on the tailnet (`walroos hub --hostname`). If yours has another name:
+It looks for the hub at `walroos-hub`, the hub's default name on the tailnet (`walroos hub --hostname`). If yours has another name, start it with `WALROOS_HUB`:
 
 ```bash
-WALROOS_HUB=my-hub cargo run --release
+WALROOS_HUB=my-hub walroos-desktop
 ```
+
+To set it for the launcher too, put `WALROOS_HUB=my-hub` in `~/.config/environment.d/walroos.conf` and log in again.
 
 ### Reaching the hub
 
@@ -58,12 +58,28 @@ If the app can't reach the hub, it says why. You can also run `walroos ui` and o
 
 ## Development
 
+Build and run it from source. You need Rust (latest stable) and the libraries GPUI builds against. On Debian or Ubuntu:
+
+```bash
+sudo apt install libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libx11-xcb-dev libxcb1-dev libfontconfig-dev libfreetype-dev libvulkan-dev
+```
+
+On Arch: `sudo pacman -S libxkbcommon libxkbcommon-x11 wayland libxcb fontconfig freetype2 vulkan-icd-loader`.
+
+```bash
+git clone https://github.com/jefjesuswt/walroos-desktop
+cd walroos-desktop
+WALROOS_HUB=my-hub cargo run --release
+```
+
 ```bash
 cargo test
 cargo fmt --check && cargo clippy --all-targets -- -D warnings
 ```
 
 `gpui-kit` is pinned to an exact version: GPUI is pre-1.0 and changes between snapshots.
+
+**Releasing:** bump `version` in `Cargo.toml`, then tag it (`git tag v0.2.0 && git push origin v0.2.0`). The `release` workflow runs the tests, runs `scripts/release.sh` on Ubuntu 22.04 (so the binary runs on older glibc too) and publishes `dist/` as a GitHub release: the .deb, the AppImage, the tar.gz with its PKGBUILD, and `SHA256SUMS`. To build the same packages locally: `cargo install cargo-packager --locked`, then `scripts/release.sh v0.2.0`.
 
 ## License
 
