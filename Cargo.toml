@@ -2,6 +2,7 @@
 name = "walroos-desktop"
 version = "0.1.0"
 edition = "2024"
+authors = ["Jeffrey Jesus"]
 description = "Native desktop app for walroos, built with GPUI"
 license = "MIT"
 repository = "https://github.com/jefjesuswt/walroos-desktop"
@@ -13,3 +14,24 @@ gpui-kit = "=0.10.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 ureq = { version = "3.5", features = ["json"] }
+
+# Packages: `scripts/release.sh` (and the release workflow on a v* tag). See cargo-packager's
+# Config for every key.
+[package.metadata.packager]
+product-name = "walroos"
+identifier = "io.github.jefjesuswt.walroos-desktop"
+description = "Your walroos hub's nodes, projects and deploys, in a native window"
+category = "DeveloperTool"
+license-file = "LICENSE"
+icons = ["assets/icons/*.png"]
+binaries-dir = "target/release"
+out-dir = "dist"
+binaries = [{ path = "walroos-desktop", main = true }]
+formats = ["deb", "appimage", "pacman"]
+
+# What GPUI needs at run time on Debian and Ubuntu (Wayland or X11, Vulkan, fonts).
+[package.metadata.packager.deb]
+depends = ["libxkbcommon0", "libxkbcommon-x11-0", "libwayland-client0", "libx11-xcb1", "libxcb1", "libvulkan1", "libfontconfig1", "libfreetype6"]
+
+[package.metadata.packager.pacman]
+depends = ["libxkbcommon", "libxkbcommon-x11", "wayland", "libxcb", "vulkan-icd-loader", "fontconfig", "freetype2"]
