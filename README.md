@@ -19,6 +19,8 @@ If your role is owner or deployer, each app's **⋮** menu can:
 
 A notification says how each one went.
 
+The app follows your desktop: light or dark, and on Linux the UI font from your GTK/GNOME settings (`gsettings get org.gnome.desktop.interface font-name`, or fontconfig's `sans-serif`). If that font is installed only as a variable font, bold text shows at its regular weight. Installing its static files (Medium, SemiBold, Bold) fixes it.
+
 ## Requirements
 
 - A walroos hub, and this machine on the same tailnet. The hub knows you by your Tailscale identity, so there is nothing to log in to.

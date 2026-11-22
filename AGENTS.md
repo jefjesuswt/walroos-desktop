@@ -8,8 +8,9 @@ Native desktop app for [walroos](https://github.com/jefjesuswt/walroos), in Rust
 - **Blocking HTTP (`ureq`) on `cx.background_spawn`**, results back with `cx.spawn` + `update`. GPUI's executor isn't tokio.
 - **gpui-kit is pinned exactly.** GPUI breaks between snapshots; upgrade it in a PR of its own.
 - **Linux first.** macOS and Windows come later.
-- **Pages** are a `page::Spec` (title, fetch, body) shown by the generic `Page`, which polls and shows errors; `shell.rs` holds the tabs. All pages share one `link::Link` to the hub.
+- **Pages** are a `page::Spec` (title, fetch, body) shown by the generic `Page`, which polls and shows errors; `shell.rs` holds the tabs and keeps each page once opened (no reload when switching). Background polls are quiet; only a Refresh click spins the button. All pages share one `link::Link` to the hub.
 - **Actions** (`actions.rs`) run on the hub in the background and end in a notification plus a page refresh. They are offered only when `User::manages_apps` (owner, deployer), and only when the app's state allows them, as the web panel does. Stop and rollback ask first.
+- **Look** (`theme.rs`): the system's light/dark and UI font, walroos' magenta, slightly longer motion than gpui-component's defaults. Re-applied after every light/dark change, which reloads the theme.
 - **States and labels** of apps and databases come from `status.rs`, which mirrors `web/src/status.ts`: a service shows the same state as in the web panel.
 - Keep files under ~300 lines; one page per file, its pieces apart (`nodes.rs`, `node_card.rs`).
 - Test builders the tests share live in `api::fixtures`.

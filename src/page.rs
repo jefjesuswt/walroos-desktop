@@ -38,7 +38,8 @@ pub struct Page<T: 'static> {
     link: Link,
     data: Option<T>, // None until the first answer
     error: Option<String>,
-    loading: bool,
+    busy: bool,     // a request is out
+    spinning: bool, // you asked for it: the Refresh button shows it; polling stays quiet
     _poll: Task<()>,
 }
 
@@ -57,17 +58,17 @@ impl<T: Send + 'static> Page<T> {
             link,
             data: None,
             error: None,
-            loading: false,
+            busy: false,
+            spinning: false,
             _poll: poll,
         }
     }
 
     fn refresh(&mut self, cx: &mut Context<Self>) {
-        if self.loading {
+        if self.busy {
             return;
         }
-        self.loading = true;
-        cx.notify();
+        self.busy = true;
         let (link, fetch) = (self.link.clone(), self.spec.fetch);
         let task = cx.background_spawn(async move { link.call(fetch) });
         cx.spawn(async move |this, cx| {
@@ -78,7 +79,8 @@ impl<T: Send + 'static> Page<T> {
     }
 
     fn apply(&mut self, result: Result<T, Error>, cx: &mut Context<Self>) {
-        self.loading = false;
+        self.busy = false;
+        self.spinning = false;
         match result {
             Ok(data) => {
                 self.data = Some(data);
@@ -107,8 +109,12 @@ impl<T: Send + 'static> Page<T> {
                 Button::new("refresh")
                     .outline()
                     .label("Refresh")
-                    .loading(self.loading)
-                    .on_click(cx.listener(|this, _, _, cx| this.refresh(cx))),
+                    .loading(self.spinning)
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.spinning = true;
+                        cx.notify();
+                        this.refresh(cx);
+                    })),
             )
     }
 
