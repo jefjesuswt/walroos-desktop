@@ -1,6 +1,6 @@
 [package]
 name = "walroos-desktop"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["Jeffrey Jesus"]
 description = "Native desktop app for walroos, built with GPUI"
