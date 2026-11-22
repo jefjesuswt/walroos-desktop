@@ -96,26 +96,18 @@ pub fn engine_label(engine: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::{app_state, db_state, state};
-    use crate::api::{App, Database, Deployment, Release};
+    use crate::api::{App, Database, fixtures};
 
     fn app(source: bool, deploy: Option<&str>, running: Option<&str>) -> App {
         App {
-            name: "web".into(),
-            node_name: "prod-1".into(),
             repo_url: if source {
-                "https://github.com/example/web".into()
+                fixtures::app().repo_url
             } else {
                 String::new()
             },
-            image: String::new(),
-            branch: "main".into(),
-            domains: vec![],
-            last_deployment: deploy.map(|s| Deployment {
-                state: s.into(),
-                error: None,
-            }),
-            running: running.map(|s| Release { state: s.into() }),
-            node_down: false,
+            last_deployment: deploy.map(|s| fixtures::deployment("d1", s, "")),
+            running: running.map(|s| fixtures::release("d1", s)),
+            ..fixtures::app()
         }
     }
 

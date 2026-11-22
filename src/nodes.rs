@@ -15,7 +15,7 @@ pub fn spec() -> Spec<Vec<Node>> {
             sort_nodes(&mut nodes);
             Ok(nodes)
         },
-        body: |nodes, cx| body(nodes, cx),
+        body: |nodes, _, cx| body(nodes, cx),
     }
 }
 

@@ -59,6 +59,11 @@ impl Link {
         result
     }
 
+    /// Who the hub says you are, once reached.
+    pub fn me(&self) -> Option<User> {
+        self.conn.lock().unwrap().as_ref().map(|(_, me)| me.clone())
+    }
+
     /// Which hub, as whom and how, for the page header.
     pub fn describe(&self) -> String {
         match &*self.conn.lock().unwrap() {

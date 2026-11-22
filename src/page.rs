@@ -1,6 +1,7 @@
 //! A page that shows something the hub lists: it fetches it in the background, refreshes it
 //! every few seconds, and keeps showing the last answer under an error when a refresh fails.
 
+use std::rc::Rc;
 use std::time::Duration;
 
 use gpui_kit::component::alert::Alert;
@@ -20,7 +21,16 @@ const REFRESH_EVERY: Duration = Duration::from_secs(10);
 pub struct Spec<T> {
     pub title: &'static str,
     pub fetch: fn(&Hub) -> Result<T, Error>,
-    pub body: fn(&T, &App) -> AnyElement,
+    pub body: fn(&T, &Ctx, &App) -> AnyElement,
+}
+
+/// What a page's body needs to act on what it shows: the hub, whether you may change apps, and
+/// a way to refresh the page after a change.
+#[derive(Clone)]
+pub struct Ctx {
+    pub link: Link,
+    pub manages_apps: bool,
+    pub refresh: Rc<dyn Fn(&mut App)>,
 }
 
 pub struct Page<T: 'static> {
@@ -102,9 +112,20 @@ impl<T: Send + 'static> Page<T> {
             )
     }
 
-    fn body(&self, cx: &App) -> AnyElement {
+    fn ctx(&self, cx: &Context<Self>) -> Ctx {
+        let page = cx.weak_entity();
+        Ctx {
+            link: self.link.clone(),
+            manages_apps: self.link.me().is_some_and(|me| me.manages_apps()),
+            refresh: Rc::new(move |cx| {
+                page.update(cx, |p, cx| p.refresh(cx)).ok();
+            }),
+        }
+    }
+
+    fn body(&self, cx: &Context<Self>) -> AnyElement {
         match &self.data {
-            Some(data) => (self.spec.body)(data, cx),
+            Some(data) => (self.spec.body)(data, &self.ctx(cx), cx),
             None if self.error.is_none() => h_flex()
                 .gap_2()
                 .child(Spinner::new())

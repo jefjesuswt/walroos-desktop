@@ -4,25 +4,26 @@ use gpui_kit::component::label::Label;
 use gpui_kit::component::{ActiveTheme, StyledExt, h_flex, v_flex};
 use gpui_kit::*;
 
+use crate::actions::app_menu;
 use crate::api::{App as AppService, Database, Project};
-use crate::page::{Spec, card, empty};
+use crate::page::{Ctx, Spec, card, empty};
 use crate::status::{State, app_state, db_state, engine_label};
 
 pub fn spec() -> Spec<Vec<Project>> {
     Spec {
         title: "Projects",
         fetch: |hub| hub.projects(),
-        body: |projects, cx| body(projects, cx),
+        body: |projects, ctx, cx| body(projects, ctx, cx),
     }
 }
 
-fn body(projects: &[Project], cx: &App) -> AnyElement {
+fn body(projects: &[Project], ctx: &Ctx, cx: &App) -> AnyElement {
     if projects.is_empty() {
         return empty("No projects yet. Create one in the web panel.", cx);
     }
     v_flex()
         .gap_3()
-        .children(projects.iter().map(|p| project_card(p, cx)))
+        .children(projects.iter().map(|p| project_card(p, ctx, cx)))
         .into_any_element()
 }
 
@@ -34,9 +35,10 @@ struct Service {
     node: String,
     state: State,
     trouble: Option<String>, // the last deploy's or backup's error
+    menu: Option<AnyElement>,
 }
 
-fn app_service(a: &AppService) -> Service {
+fn app_service(a: &AppService, ctx: &Ctx) -> Service {
     let failed = a.last_deployment.as_ref().filter(|d| d.state == "failed");
     let mut what = source(a);
     if let Some(domain) = a.domains.first() {
@@ -54,6 +56,7 @@ fn app_service(a: &AppService) -> Service {
                 d.error.as_deref().unwrap_or("no error saved")
             )
         }),
+        menu: ctx.manages_apps.then(|| app_menu(a, ctx)),
     }
 }
 
@@ -68,6 +71,7 @@ fn db_service(d: &Database) -> Service {
             .last_backup_error
             .as_ref()
             .map(|e| format!("Last backup failed: {e}")),
+        menu: None,
     }
 }
 
@@ -93,11 +97,11 @@ fn source(a: &AppService) -> String {
     }
 }
 
-fn project_card(p: &Project, cx: &App) -> impl IntoElement {
+fn project_card(p: &Project, ctx: &Ctx, cx: &App) -> impl IntoElement {
     let services: Vec<Service> = p
         .apps
         .iter()
-        .map(app_service)
+        .map(|a| app_service(a, ctx))
         .chain(p.databases.iter().map(db_service))
         .collect();
     let running = services.iter().filter(|s| s.state.running()).count();
@@ -140,7 +144,8 @@ fn service_row(s: Service, cx: &App) -> impl IntoElement {
                 .child(s.state.tag())
                 .child(Label::new(s.what).text_sm().text_color(muted).truncate())
                 .child(div().flex_1())
-                .child(Label::new(format!("on {}", s.node)).text_sm().text_color(muted)),
+                .child(Label::new(format!("on {}", s.node)).text_sm().text_color(muted))
+                .children(s.menu),
         )
         .children(
             s.trouble
@@ -151,18 +156,14 @@ fn service_row(s: Service, cx: &App) -> impl IntoElement {
 #[cfg(test)]
 mod tests {
     use super::{AppService, source};
+    use crate::api::fixtures;
 
     fn app(repo: &str, image: &str, branch: &str) -> AppService {
         AppService {
-            name: "web".into(),
-            node_name: "prod-1".into(),
             repo_url: repo.into(),
             image: image.into(),
             branch: branch.into(),
-            domains: vec![],
-            last_deployment: None,
-            running: None,
-            node_down: false,
+            ..fixtures::app()
         }
     }
 
