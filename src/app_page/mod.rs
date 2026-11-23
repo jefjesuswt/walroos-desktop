@@ -15,7 +15,6 @@ use std::time::Duration;
 
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::label::Label;
-use gpui_kit::component::scroll::ScrollableElement;
 use gpui_kit::component::spinner::Spinner;
 use gpui_kit::component::tab::{Tab, TabBar};
 use gpui_kit::component::{ActiveTheme, h_flex, v_flex};
@@ -29,7 +28,7 @@ use crate::env_editor::EnvEditor;
 use crate::hub::{Error, Hub};
 use crate::link::Link;
 use crate::log_view::{LogView, Source};
-use crate::page::{Ctx, poll};
+use crate::page::{Ctx, poll, scroll_body};
 
 const TABS: [&str; 7] = [
     "General",
@@ -241,15 +240,9 @@ impl Render for AppPage {
         let body = self.tab_body(window, cx);
         // The Logs tab scrolls inside its own box; the others scroll as a page.
         let body = if self.tab == LOGS {
-            div().flex_1().min_h_0().child(body)
+            div().flex_1().min_h_0().pb_6().child(body).into_any_element()
         } else {
-            div().flex_1().min_h_0().child(
-                div()
-                    .id("app-body")
-                    .size_full()
-                    .overflow_y_scrollbar()
-                    .child(v_flex().max_w(px(860.)).pb_6().child(body)),
-            )
+            scroll_body("app-body", body).into_any_element()
         };
         v_flex()
             .size_full()

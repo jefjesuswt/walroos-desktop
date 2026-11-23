@@ -125,6 +125,6 @@ impl Render for Shell {
             .size_full()
             .bg(cx.theme().background)
             .child(tabs)
-            .child(page)
+            .child(div().flex_1().min_h_0().child(page)) // the page gets what the tabs leave
     }
 }

@@ -122,7 +122,11 @@ impl LogView {
             .filter(|l| !l.trim().is_empty())
             .map(str::to_string)
             .collect();
-        if self.lines.as_ref().map(Vec::len) != Some(lines.len()) {
+        // New lines: follow them only if you were reading the end (or it's the first answer), so
+        // scrolling up to read stays put while a deploy writes.
+        if self.lines.as_ref().map(Vec::len) != Some(lines.len())
+            && (self.lines.is_none() || self.at_bottom())
+        {
             self.follow = true;
         }
         self.lines = Some(lines);
@@ -134,6 +138,12 @@ impl LogView {
             }
             _ => None,
         }
+    }
+
+    /// Scrolled to the end, or near it.
+    fn at_bottom(&self) -> bool {
+        let (offset, max) = (self.scroll.offset(), self.scroll.max_offset());
+        -offset.y >= max.y - px(24.)
     }
 
     fn summary(&self, cx: &App) -> Option<impl IntoElement> {

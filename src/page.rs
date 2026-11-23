@@ -149,19 +149,10 @@ impl<T: Send + 'static> Render for Page<T> {
                 self.spec.title.to_lowercase()
             ))
         });
-        v_flex()
-            .size_full()
-            .p_6()
-            .gap_4()
+        frame()
             .child(self.header(cx))
             .children(error)
-            .child(
-                div()
-                    .id("page-body")
-                    .flex_1()
-                    .overflow_y_scrollbar()
-                    .child(self.body(cx)),
-            )
+            .child(scroll_body("page-body", self.body(cx)))
     }
 }
 
@@ -175,6 +166,22 @@ pub fn poll<V: 'static>(cx: &mut Context<V>, tick: fn(&mut V, &mut Context<V>) -
             cx.background_executor().timer(wait).await;
         }
     })
+}
+
+/// A page: padded on the sides and top; its scrolling body runs to the window's bottom edge.
+pub fn frame() -> Div {
+    v_flex().size_full().px_6().pt_6().gap_4()
+}
+
+/// What scrolls under a page's header, with room at the end so the last card doesn't touch
+/// the window's edge.
+pub fn scroll_body(id: &'static str, content: impl IntoElement) -> impl IntoElement {
+    div()
+        .id(id)
+        .flex_1()
+        .min_h_0()
+        .overflow_y_scrollbar()
+        .child(div().w_full().pb_6().child(content))
 }
 
 /// A page's title, with a muted line under it.

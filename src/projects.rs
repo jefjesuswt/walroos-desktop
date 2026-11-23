@@ -48,7 +48,8 @@ struct Service {
 
 fn app_service(a: &AppService, ctx: &Ctx) -> Service {
     let failed = a.last_deployment.as_ref().filter(|d| d.state == "failed");
-    let mut what = source(a);
+    // A draft's state already says it has no source.
+    let mut what = if a.is_draft() { String::new() } else { source(a) };
     if let Some(domain) = a.domains.first() {
         what = format!("{what} · {domain}");
     }

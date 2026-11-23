@@ -13,7 +13,8 @@ use crate::page::card;
 use crate::status::status_tag;
 use crate::when;
 
-pub fn node_card(n: &Node, cx: &App) -> impl IntoElement {
+/// runs: the names of the apps and databases on it.
+pub fn node_card(n: &Node, runs: &[String], cx: &App) -> impl IntoElement + use<> {
     let t = &n.telemetry;
     let status = status_tag(&n.status, n.status.clone());
     let mut facts = vec![format!("{}/{}", t.os, t.arch)];
@@ -80,6 +81,14 @@ pub fn node_card(n: &Node, cx: &App) -> impl IntoElement {
                     )),
             )
         })
+        .child(
+            Label::new(match runs.len() {
+                0 => "Runs nothing yet.".to_string(),
+                k => format!("Runs {k}: {}", runs.join(", ")),
+            })
+            .text_sm()
+            .text_color(cx.theme().muted_foreground),
+        )
         .children(t.problems.iter().map(|p| {
             Alert::warning(SharedString::from(format!("{}-{}", n.id, p.code)), p.fix.clone())
                 .title(p.title.clone())
