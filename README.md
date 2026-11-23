@@ -6,7 +6,7 @@ A native desktop app for [walroos](https://github.com/jefjesuswt/walroos), built
 
 ## What it shows
 
-Three tabs, each refreshed every 10 seconds (every 2 while a deploy runs):
+Four tabs; the first three refresh every 10 seconds (every 2 while a deploy runs):
 
 - **Nodes:** every node with its status, roles, CPU, memory and disk. Nodes with problems come first, each problem with its fix.
 - **Projects:** each project with its apps and databases: what each one is doing (running, deploying, stopped, failed…), where it comes from, its domain and its node. A failed deploy or backup shows its error.
@@ -21,6 +21,16 @@ Each app's **⋮** menu opens its **Logs** and its **Last deploy log**. If your 
 - **Roll back…** to an earlier release that deployed fine. Pick one from its recent deployments; its log opens too.
 
 A notification says how each one went.
+
+Click an app's name to open its page, with a tab per part of its setup, like the web panel's:
+
+- **General:** where it comes from (a Git repository with a Dockerfile, a static site, or a Docker image) and its health check, port, command and build folder. **Edit** changes them; they apply on the next deploy.
+- **Environment:** its variables (a value marked secret is masked), with the other services and shared variables of its project you can reference (click one to copy `${{service.KEY}}`).
+- **Domains:** its public hostnames through Cloudflare Tunnel.
+- **Automation:** deploy by hand, on every push (the webhook URL and secret for GitHub, Gitea, Forgejo or GitLab), or after CI (a deploy token and a GitHub Actions workflow to copy).
+- **Deployments**, **Logs**, and **Advanced:** its volumes, what runs on the node, and **Delete app**.
+
+The header has its **⋮** menu and **Deploy**, which takes an optional commit. Owners and deployers change apps; developers see them, but not their variables.
 
 The app follows your desktop: light or dark, and on Linux the UI font from your GTK/GNOME settings (`gsettings get org.gnome.desktop.interface font-name`, or fontconfig's `sans-serif`). If that font is installed only as a variable font, bold text shows at its regular weight. Installing its static files (Medium, SemiBold, Bold) fixes it.
 

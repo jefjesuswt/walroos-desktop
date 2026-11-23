@@ -6,6 +6,7 @@ use gpui_kit::*;
 
 use crate::actions::app_menu;
 use crate::api::{App as AppService, Database, Project};
+use crate::nav::{self, Detail};
 use crate::page::{Ctx, Spec, card, empty};
 use crate::status::{State, app_state, db_state, engine_label};
 
@@ -42,6 +43,7 @@ struct Service {
     state: State,
     trouble: Option<String>, // the last deploy's or backup's error
     menu: Option<AnyElement>,
+    page: Option<Detail>, // what clicking its name opens
 }
 
 fn app_service(a: &AppService, ctx: &Ctx) -> Service {
@@ -63,6 +65,7 @@ fn app_service(a: &AppService, ctx: &Ctx) -> Service {
             )
         }),
         menu: Some(app_menu(a, ctx)),
+        page: Some(Detail::App(a.name.clone())),
     }
 }
 
@@ -78,6 +81,7 @@ fn db_service(d: &Database) -> Service {
             .as_ref()
             .map(|e| format!("Last backup failed: {e}")),
         menu: None,
+        page: None,
     }
 }
 
@@ -134,6 +138,21 @@ fn project_card(p: &Project, ctx: &Ctx, cx: &App) -> impl IntoElement {
         .children(services.into_iter().map(|s| service_row(s, cx)))
 }
 
+/// The service's name; a link to its page when it has one.
+fn name(text: &str, page: Option<Detail>, cx: &App) -> AnyElement {
+    let label = Label::new(text.to_string()).font_medium();
+    let Some(page) = page else {
+        return label.into_any_element();
+    };
+    div()
+        .id(SharedString::from(format!("open-{text}")))
+        .cursor_pointer()
+        .hover(|s| s.text_color(cx.theme().link))
+        .on_click(move |_, window, cx| nav::open(page.clone(), window, cx))
+        .child(label)
+        .into_any_element()
+}
+
 fn service_row(s: Service, cx: &App) -> impl IntoElement {
     let muted = cx.theme().muted_foreground;
     v_flex()
@@ -146,7 +165,7 @@ fn service_row(s: Service, cx: &App) -> impl IntoElement {
                 .gap_3()
                 .items_center()
                 .child(Label::new(s.kind).text_xs().text_color(muted).w(px(64.)))
-                .child(Label::new(s.name).font_medium())
+                .child(name(&s.name, s.page, cx))
                 .child(s.state.tag())
                 .child(Label::new(s.what).text_sm().text_color(muted).truncate())
                 .child(div().flex_1())

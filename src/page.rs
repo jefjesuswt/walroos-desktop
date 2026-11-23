@@ -49,16 +49,9 @@ pub struct Page<T: 'static> {
 
 impl<T: Send + 'static> Page<T> {
     pub fn new(spec: Spec<T>, link: Link, cx: &mut Context<Self>) -> Self {
-        let poll = cx.spawn(async move |this, cx| {
-            loop {
-                let Ok(wait) = this.update(cx, |p, cx| {
-                    p.refresh(cx);
-                    p.wait()
-                }) else {
-                    break; // the page is gone
-                };
-                cx.background_executor().timer(wait).await;
-            }
+        let poll = poll(cx, |p, cx| {
+            p.refresh(cx);
+            p.wait()
         });
         Page {
             spec,
@@ -170,6 +163,18 @@ impl<T: Send + 'static> Render for Page<T> {
                     .child(self.body(cx)),
             )
     }
+}
+
+/// Calls tick now, then again after the wait it returns, for as long as the view lives.
+pub fn poll<V: 'static>(cx: &mut Context<V>, tick: fn(&mut V, &mut Context<V>) -> Duration) -> Task<()> {
+    cx.spawn(async move |this, cx| {
+        loop {
+            let Ok(wait) = this.update(cx, tick) else {
+                break; // the view is gone
+            };
+            cx.background_executor().timer(wait).await;
+        }
+    })
 }
 
 /// A page's title, with a muted line under it.

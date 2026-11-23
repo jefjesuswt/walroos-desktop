@@ -13,7 +13,7 @@ use gpui_kit::component::input::InputState;
 use gpui_kit::component::label::Label;
 use gpui_kit::component::scroll::ScrollableElement;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{ActiveTheme, StyledExt, h_flex, v_flex};
+use gpui_kit::component::{h_flex, v_flex};
 use gpui_kit::*;
 
 pub use this_app::Switched;
@@ -22,7 +22,7 @@ use this_app::ThisApp;
 use crate::api::{Cloudflare, GitHub, Member, SshKey, User};
 use crate::hub::{Error, Hub};
 use crate::link::Link;
-use crate::page::{Ctx, card, heading};
+use crate::page::{Ctx, heading};
 
 /// What Settings shows from the hub.
 struct HubData {
@@ -161,26 +161,4 @@ impl Render for Settings {
                     .child(column),
             )
     }
-}
-
-/// A settings card: its title and what it's for, an action on the right, then its content.
-fn section(title: &'static str, sub: impl Into<SharedString>, action: Option<AnyElement>, cx: &App) -> Div {
-    let head = h_flex()
-        .gap_4()
-        .items_start()
-        .child(
-            v_flex()
-                .flex_1()
-                .min_w_0()
-                .gap_1()
-                .child(Label::new(title).font_semibold())
-                .child(Label::new(sub).text_sm().text_color(cx.theme().muted_foreground)),
-        )
-        .children(action);
-    card(cx).child(head)
-}
-
-/// A muted line under a row's main text.
-fn muted(text: impl Into<SharedString>, cx: &App) -> Label {
-    Label::new(text).text_sm().text_color(cx.theme().muted_foreground)
 }

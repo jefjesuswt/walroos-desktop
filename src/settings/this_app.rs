@@ -11,12 +11,12 @@ use gpui_kit::component::spinner::Spinner;
 use gpui_kit::component::{ActiveTheme, Disableable, Sizable, h_flex, v_flex};
 use gpui_kit::*;
 
-use super::section;
 use crate::api::User;
 use crate::config;
 use crate::discover;
 use crate::hub::{self, DEFAULT_PROXY, Error, Hub};
 use crate::link::{Link, Target};
+use crate::ui::section;
 
 /// The app switched to another hub: what showed the old one starts over.
 pub struct Switched;

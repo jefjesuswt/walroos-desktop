@@ -1,11 +1,15 @@
 mod actions;
 mod api;
+mod app_page;
+mod command;
 mod config;
 mod deployments;
 mod discover;
+mod env_editor;
 mod hub;
 mod link;
 mod log_view;
+mod nav;
 mod node_card;
 mod nodes;
 mod page;
@@ -15,7 +19,9 @@ mod settings;
 mod shell;
 mod status;
 mod theme;
+mod ui;
 mod when;
+mod workflow;
 
 use gpui_kit::*;
 
@@ -43,7 +49,7 @@ fn main() {
             };
             gpui_kit::open_window(options, cx, |window, cx| {
                 theme::follow_system(window, cx);
-                cx.new(|_| Shell::new(link))
+                cx.new(|cx| Shell::new(link, cx))
             })
             .expect("open the window");
         });

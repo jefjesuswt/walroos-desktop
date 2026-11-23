@@ -12,10 +12,10 @@ use gpui_kit::component::radio::{Radio, RadioGroup};
 use gpui_kit::component::{ActiveTheme, Disableable, Icon, Sizable, WindowExt, h_flex, v_flex};
 use gpui_kit::*;
 
-use super::{muted, section};
 use crate::actions::{confirm, run};
 use crate::api::{Member, ROLES, User};
 use crate::page::Ctx;
+use crate::ui::{muted, section};
 use crate::when;
 
 pub fn card(users: &[Member], me: &User, ctx: &Ctx, cx: &App) -> AnyElement {
