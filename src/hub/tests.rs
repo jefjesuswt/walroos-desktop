@@ -100,7 +100,7 @@ fn a_hub_that_says_no_is_not_retried() {
     let err = connect_with(&hub, None, &proxy).err().unwrap();
     assert_eq!(
         err,
-        Error::Answer("the hub doesn't know you: not a member".into())
+        Error::Stranger("the hub doesn't know you: not a member".into())
     );
     assert!(seen.lock().unwrap().is_empty());
 }

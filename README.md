@@ -42,7 +42,9 @@ Download the package for your distro from the [latest release](https://github.co
 
 Then open **walroos** from your app launcher, or run `walroos-desktop`.
 
-It looks for the hub at `walroos-hub`, the hub's default name on the tailnet (`walroos hub --hostname`). If yours has another name, open **Settings**, type it in **Hub** and press **Connect and save**. The app reaches the hub with it first and only saves it when the hub answers, in `~/.config/walroos-desktop/config.json`.
+It looks for the hub at `walroos-hub`, the hub's default name on the tailnet (`walroos hub --hostname`). If yours has another name, open **Settings**: it lists the hubs it finds on your tailnet (it asks `tailscale status` which machines are online, then which of them answer as a hub). Press **Use** on yours, or type its name in **Hub** and press **Connect and save**. The app reaches the hub first and only saves it when the hub answers, in `~/.config/walroos-desktop/config.json`.
+
+Settings also has what the web panel's has: your SSH keys and, if you own the hub, its users and roles and the Cloudflare and GitHub tokens.
 
 `WALROOS_HUB` and `WALROOS_PROXY`, when set, win over the saved settings for that run:
 

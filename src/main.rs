@@ -2,6 +2,7 @@ mod actions;
 mod api;
 mod config;
 mod deployments;
+mod discover;
 mod hub;
 mod link;
 mod log_view;
