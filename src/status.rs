@@ -50,7 +50,7 @@ pub fn app_state(a: &App) -> State {
     if a.node_down {
         return state("offline", "node offline");
     }
-    if a.repo_url.is_empty() && a.image.is_empty() {
+    if a.is_draft() {
         return state("stopped", "no source yet");
     }
     let d = a.last_deployment.as_ref();

@@ -3,6 +3,9 @@
 
 use serde::Deserialize;
 
+mod apps;
+pub use apps::*;
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct User {
     pub login: String,
@@ -70,48 +73,6 @@ pub struct Project {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct App {
-    pub name: String,
-    pub node_name: String,
-    #[serde(default)]
-    pub repo_url: String, // '' when image is set; both '' = a draft with no source yet
-    #[serde(default)]
-    pub image: String,
-    #[serde(default)]
-    pub branch: String,
-    #[serde(default)]
-    pub domains: Vec<String>,
-    pub last_deployment: Option<Deployment>,
-    pub running: Option<Release>,
-    #[serde(default)]
-    pub node_down: bool,
-}
-
-#[derive(Clone, Debug, Default, Deserialize)]
-pub struct Deployment {
-    pub id: String,
-    pub app_name: Option<String>, // only in the all-apps list
-    #[serde(default)]
-    pub sha: String,
-    #[serde(default)]
-    pub image: String, // what it ran; a rollback needs it
-    pub state: String, // queued, running, succeeded, failed
-    pub error: Option<String>,
-    #[serde(default)]
-    pub created_at: String,
-    pub finished_at: Option<String>,
-    #[serde(default)]
-    pub log: String, // only when getting one deployment
-}
-
-/// The release the node runs, as its agent reports it.
-#[derive(Clone, Debug, Deserialize)]
-pub struct Release {
-    pub container: String, // <app>-<deployment id>
-    pub state: String,     // systemd ActiveState: active, activating, failed...
-}
-
-#[derive(Clone, Debug, Deserialize)]
 pub struct Database {
     pub name: String,
     pub node_name: String,
@@ -138,46 +99,6 @@ impl Node {
 /// Nodes in the order the list shows them: the ones that need you first, then by name.
 pub fn sort_nodes(nodes: &mut [Node]) {
     nodes.sort_by(|a, b| a.urgency().cmp(&b.urgency()).then_with(|| a.name.cmp(&b.name)));
-}
-
-/// Builders the tests share: an app named web on prod-1 with a repo and nothing deployed yet.
-#[cfg(test)]
-pub mod fixtures {
-    use super::{App, Deployment, Release};
-
-    pub fn app() -> App {
-        App {
-            name: "web".into(),
-            node_name: "prod-1".into(),
-            repo_url: "https://github.com/example/web".into(),
-            image: String::new(),
-            branch: "main".into(),
-            domains: vec![],
-            last_deployment: None,
-            running: None,
-            node_down: false,
-        }
-    }
-
-    pub fn deployment(id: &str, state: &str, image: &str) -> Deployment {
-        Deployment {
-            id: id.into(),
-            sha: format!("{id}abcdef"),
-            image: image.into(),
-            state: state.into(),
-            error: None,
-            created_at: "2026-11-22T10:00:00Z".into(),
-            ..Default::default()
-        }
-    }
-
-    /// The app's release running on the node, from deployment id.
-    pub fn release(id: &str, state: &str) -> Release {
-        Release {
-            container: format!("web-{id}"),
-            state: state.into(),
-        }
-    }
 }
 
 #[cfg(test)]

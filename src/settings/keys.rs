@@ -7,10 +7,10 @@ use gpui_kit::component::label::Label;
 use gpui_kit::component::{ActiveTheme, Icon, Sizable, WindowExt, h_flex, v_flex};
 use gpui_kit::*;
 
-use super::{muted, section};
 use crate::actions::run;
 use crate::api::SshKey;
 use crate::page::Ctx;
+use crate::ui::{muted, section};
 use crate::when;
 
 pub fn card(keys: &[SshKey], ctx: &Ctx, cx: &App) -> AnyElement {

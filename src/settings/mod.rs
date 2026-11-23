@@ -11,9 +11,8 @@ use std::rc::Rc;
 use gpui_kit::component::alert::Alert;
 use gpui_kit::component::input::InputState;
 use gpui_kit::component::label::Label;
-use gpui_kit::component::scroll::ScrollableElement;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{ActiveTheme, StyledExt, h_flex, v_flex};
+use gpui_kit::component::{h_flex, v_flex};
 use gpui_kit::*;
 
 pub use this_app::Switched;
@@ -22,7 +21,10 @@ use this_app::ThisApp;
 use crate::api::{Cloudflare, GitHub, Member, SshKey, User};
 use crate::hub::{Error, Hub};
 use crate::link::Link;
-use crate::page::{Ctx, card, heading};
+use crate::page::{Ctx, frame, heading, scroll_body};
+
+/// From this window width the cards go in two columns.
+const WIDE: f32 = 1100.;
 
 /// What Settings shows from the hub.
 struct HubData {
@@ -112,75 +114,54 @@ impl Settings {
         }
     }
 
-    fn hub_sections(&self, cx: &Context<Self>) -> Vec<AnyElement> {
-        let d = match &self.data {
-            None => {
-                let loading = h_flex()
-                    .gap_2()
-                    .child(Spinner::new())
-                    .child(Label::new("Loading…"));
-                return vec![loading.into_any_element()];
-            }
-            Some(Err(e)) => {
-                let alert =
-                    Alert::error("settings-error", e.clone()).title("Can't get your settings from the hub");
-                return vec![alert.into_any_element()];
-            }
-            Some(Ok(d)) => d,
+    /// The cards in two columns: this app, the people and your keys; then the integrations.
+    fn columns(&self, cx: &Context<Self>) -> (Vec<AnyElement>, Vec<AnyElement>) {
+        let mut left = vec![self.this_app.clone().into_any_element()];
+        let Some(Ok(d)) = &self.data else {
+            left.push(self.waiting());
+            return (left, vec![]);
         };
         let ctx = self.ctx(&d.me, cx);
-        let mut out = Vec::new();
+        let mut right = Vec::new();
         if let Some(o) = &d.owned {
-            out.push(users::card(&o.users, &d.me, &ctx, cx));
-            out.push(tokens::cloudflare(&o.cloudflare, &self.cf_token, &ctx, cx));
-            out.push(tokens::github(&o.github, &self.gh_token, &ctx, cx));
+            left.push(users::card(&o.users, &d.me, &ctx, cx));
+            right.push(tokens::cloudflare(&o.cloudflare, &self.cf_token, &ctx, cx));
+            right.push(tokens::github(&o.github, &self.gh_token, &ctx, cx));
         }
-        out.push(keys::card(&d.keys, &ctx, cx));
-        out
+        right.push(keys::card(&d.keys, &ctx, cx));
+        (left, right)
+    }
+
+    /// Instead of the hub's cards: loading, or why they can't show.
+    fn waiting(&self) -> AnyElement {
+        match &self.data {
+            Some(Err(e)) => Alert::error("settings-error", e.clone())
+                .title("Can't get your settings from the hub")
+                .into_any_element(),
+            _ => h_flex()
+                .gap_2()
+                .child(Spinner::new())
+                .child(Label::new("Loading…"))
+                .into_any_element(),
+        }
     }
 }
 
 impl Render for Settings {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let column = v_flex()
-            .gap_4()
-            .max_w(px(720.))
-            .pb_6()
-            .child(self.this_app.clone())
-            .children(self.hub_sections(cx));
-        v_flex()
-            .size_full()
-            .p_6()
-            .gap_4()
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let (left, right) = self.columns(cx);
+        let column = |cards: Vec<AnyElement>| v_flex().flex_1().min_w_0().gap_4().children(cards);
+        let body = if window.viewport_size().width >= px(WIDE) {
+            h_flex()
+                .gap_4()
+                .items_start()
+                .child(column(left))
+                .child(column(right))
+        } else {
+            v_flex().w_full().gap_4().child(column(left)).child(column(right))
+        };
+        frame()
             .child(heading("Settings", self.link.describe(), cx))
-            .child(
-                div()
-                    .id("settings-body")
-                    .flex_1()
-                    .overflow_y_scrollbar()
-                    .child(column),
-            )
+            .child(scroll_body("settings-body", body))
     }
-}
-
-/// A settings card: its title and what it's for, an action on the right, then its content.
-fn section(title: &'static str, sub: impl Into<SharedString>, action: Option<AnyElement>, cx: &App) -> Div {
-    let head = h_flex()
-        .gap_4()
-        .items_start()
-        .child(
-            v_flex()
-                .flex_1()
-                .min_w_0()
-                .gap_1()
-                .child(Label::new(title).font_semibold())
-                .child(Label::new(sub).text_sm().text_color(cx.theme().muted_foreground)),
-        )
-        .children(action);
-    card(cx).child(head)
-}
-
-/// A muted line under a row's main text.
-fn muted(text: impl Into<SharedString>, cx: &App) -> Label {
-    Label::new(text).text_sm().text_color(cx.theme().muted_foreground)
 }

@@ -130,7 +130,7 @@ fn deploy_app(a: &AppService, ctx: &Ctx, window: &mut Window, cx: &mut App) {
     run(
         ctx,
         done,
-        move |hub| hub.deploy(&name),
+        move |hub| hub.deploy(&name, ""),
         follow(ctx, &a.name),
         window,
         cx,

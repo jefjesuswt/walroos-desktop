@@ -2,6 +2,7 @@
 
 use gpui_kit::component::label::Label;
 use gpui_kit::component::{ActiveTheme, StyledExt, h_flex};
+use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::*;
 
 use crate::api::Deployment;
@@ -29,12 +30,16 @@ fn body(list: &[Deployment], ctx: &Ctx, cx: &App) -> AnyElement {
     card(cx)
         .gap_0()
         .p_0()
-        .children(list.iter().map(|d| row(d, ctx, cx)))
+        .children(
+            list.iter()
+                .map(|d| row(d, d.app_name.as_deref().unwrap_or_default(), true, ctx, cx)),
+        )
         .into_any_element()
 }
 
-fn row(d: &Deployment, ctx: &Ctx, cx: &App) -> impl IntoElement {
-    let app = d.app_name.clone().unwrap_or_default();
+/// One deployment; show_app adds which app it was, for the list of every app's.
+pub fn row(d: &Deployment, app: &str, show_app: bool, ctx: &Ctx, cx: &App) -> impl IntoElement {
+    let app = app.to_string();
     let muted = cx.theme().muted_foreground;
     let took = when::took(&d.created_at, d.finished_at.as_deref()).unwrap_or_default();
     let source = Source::Deploy {
@@ -53,7 +58,9 @@ fn row(d: &Deployment, ctx: &Ctx, cx: &App) -> impl IntoElement {
         .cursor_pointer()
         .hover(|s| s.bg(cx.theme().list_hover))
         .on_click(move |_, window, cx| log_view::open(source.clone(), link.clone(), window, cx))
-        .child(Label::new(app).font_medium().w(px(160.)).truncate())
+        .when(show_app, |r| {
+            r.child(Label::new(app).font_medium().w(px(160.)).truncate())
+        })
         .child(h_flex().w(px(96.)).child(status_tag(&d.state, d.state.clone())))
         .child(
             Label::new(d.sha.chars().take(7).collect::<String>())

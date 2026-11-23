@@ -37,7 +37,8 @@ pub struct LogView {
     lines: Option<Vec<String>>, // None until the first answer
     error: Option<String>,
     scroll: ScrollHandle,
-    follow: bool, // new lines came in: go to the bottom once they're laid out
+    follow: bool,        // new lines came in: go to the bottom once they're laid out
+    chrome: Option<f32>, // in a sheet: the window's height the log box doesn't get
     _poll: Task<()>,
 }
 
@@ -47,14 +48,19 @@ pub fn open(source: Source, link: Link, window: &mut Window, cx: &mut App) {
         Source::Deploy { app, .. } => format!("{app} · deploy"),
         Source::Runtime { app } => format!("{app} · logs"),
     };
-    let view = cx.new(|cx| LogView::new(source, link, cx));
+    let view = cx.new(|cx| LogView::new(source, link, Some(SHEET_CHROME), cx));
     window.open_sheet(cx, move |sheet, _, _| {
         sheet.title(title.clone()).size(px(760.)).child(view.clone())
     });
 }
 
 impl LogView {
-    fn new(source: Source, link: Link, cx: &mut Context<Self>) -> Self {
+    /// The log in a page (the app's Logs tab) instead of a sheet.
+    pub fn embedded(source: Source, link: Link, cx: &mut Context<Self>) -> Self {
+        LogView::new(source, link, None, cx)
+    }
+
+    fn new(source: Source, link: Link, chrome: Option<f32>, cx: &mut Context<Self>) -> Self {
         let poll = cx.spawn(async move |this, cx| {
             loop {
                 let Ok(task) = this.update(cx, |v, cx| v.fetch(cx)) else {
@@ -76,6 +82,7 @@ impl LogView {
             error: None,
             scroll: ScrollHandle::new(),
             follow: false,
+            chrome,
             _poll: poll,
         }
     }
@@ -115,7 +122,11 @@ impl LogView {
             .filter(|l| !l.trim().is_empty())
             .map(str::to_string)
             .collect();
-        if self.lines.as_ref().map(Vec::len) != Some(lines.len()) {
+        // New lines: follow them only if you were reading the end (or it's the first answer), so
+        // scrolling up to read stays put while a deploy writes.
+        if self.lines.as_ref().map(Vec::len) != Some(lines.len())
+            && (self.lines.is_none() || self.at_bottom())
+        {
             self.follow = true;
         }
         self.lines = Some(lines);
@@ -127,6 +138,12 @@ impl LogView {
             }
             _ => None,
         }
+    }
+
+    /// Scrolled to the end, or near it.
+    fn at_bottom(&self) -> bool {
+        let (offset, max) = (self.scroll.offset(), self.scroll.max_offset());
+        -offset.y >= max.y - px(24.)
     }
 
     fn summary(&self, cx: &App) -> Option<impl IntoElement> {
@@ -205,6 +222,7 @@ impl Render for LogView {
         if std::mem::take(&mut self.follow) {
             cx.on_next_frame(window, |this, _, _| this.scroll.scroll_to_bottom());
         }
+
         let theme = cx.theme();
         let failed = self
             .deployment
@@ -232,13 +250,14 @@ impl Render for LogView {
                 .collect()
         };
         // ponytail: the sheet puts its content in a scroll area, where a full height doesn't bound
-        // it; sizing to the window (less the sheet's title and padding) keeps the log box scrolling
-        // inside itself, so it can follow the newest line.
-        let height = window.viewport_size().height - px(SHEET_CHROME);
-        v_flex()
-            .w_full()
-            .h(height)
-            .gap_3()
+        // it; sizing to the window (less what's around the log) keeps the log box scrolling inside
+        // itself, so it can follow the newest line.
+        let viewport = window.viewport_size().height;
+        let box_ = match self.chrome {
+            Some(chrome) => v_flex().w_full().h(viewport - px(chrome)),
+            None => v_flex().size_full(), // a page bounds it
+        };
+        box_.gap_3()
             .children(self.summary(cx))
             .children(
                 self.error
@@ -251,7 +270,6 @@ impl Render for LogView {
                     .id("log")
                     .flex_1()
                     .min_h_0() // fill what's left of the sheet and scroll inside, not grow the sheet
-                    .p_3()
                     .rounded(theme.radius)
                     .bg(theme.muted)
                     .font_family(theme.mono_font_family.clone())
@@ -259,7 +277,8 @@ impl Render for LogView {
                     .overflow_y_scroll()
                     .track_scroll(&self.scroll)
                     .vertical_scrollbar(&self.scroll)
-                    .children(body),
+                    // padding inside: on the scrolling box gpui counts it as overflow
+                    .child(div().p_3().children(body)),
             )
     }
 }

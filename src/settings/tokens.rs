@@ -9,11 +9,11 @@ use gpui_kit::component::tag::Tag;
 use gpui_kit::component::{Sizable, WindowExt, h_flex};
 use gpui_kit::*;
 
-use super::{muted, section};
 use crate::actions::{confirm, run};
 use crate::api::{Cloudflare, GitHub};
 use crate::hub::{Error, Hub};
 use crate::page::Ctx;
+use crate::ui::{muted, section};
 
 const CF_SUB: &str = "Apps get public domains through a Cloudflare Tunnel per prod node: TLS at Cloudflare's edge, no open ports, works behind CGNAT.";
 const CF_HINT: &str = "Create one at dash.cloudflare.com → My Profile → API Tokens with Zone · DNS · Edit, Zone · Zone · Read and Account · Cloudflare Tunnel · Edit.";

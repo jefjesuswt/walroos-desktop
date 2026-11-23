@@ -117,7 +117,7 @@ fn says_what_to_check_when_nothing_answers() {
 fn a_change_is_done_when_the_hub_accepts_it() {
     let (hub, seen) = fake(202, r#"{"id":"d1","state":"queued"}"#);
     let h = Hub::new(&hub_url(&hub), None, TIMEOUT).unwrap();
-    h.deploy("web").unwrap();
+    h.deploy("web", "").unwrap();
     assert_eq!(seen.lock().unwrap()[0], "POST /api/apps/web/deploy HTTP/1.1");
     let (hub, _) = fake(204, "");
     Hub::new(&hub_url(&hub), None, TIMEOUT)

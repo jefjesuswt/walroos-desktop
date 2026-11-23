@@ -150,8 +150,9 @@ impl Hub {
         self.get("/api/projects")
     }
 
-    pub fn deploy(&self, app: &str) -> Result<Deployment, Error> {
-        self.post(&format!("/api/apps/{app}/deploy"), json!({ "sha": "" }))
+    /// Deploys sha, or the branch head when it's empty.
+    pub fn deploy(&self, app: &str, sha: &str) -> Result<Deployment, Error> {
+        self.post(&format!("/api/apps/{app}/deploy"), json!({ "sha": sha }))
     }
 
     /// action is stop, start or restart.
@@ -266,6 +267,7 @@ impl Hub {
     }
 }
 
+mod apps;
 mod settings;
 #[cfg(test)]
 mod tests;

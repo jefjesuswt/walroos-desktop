@@ -1,11 +1,16 @@
 //! The window: tabs for each page, and the page that's open. A page is made the first time its
 //! tab opens and kept after, so switching back shows it at once with its data, never a reload.
+//! One thing's page (an app) opens over the tab it was opened from, with a way back.
 
+use gpui_kit::assets::IconName;
+use gpui_kit::component::button::{Button, ButtonVariants};
 use gpui_kit::component::tab::{Tab, TabBar};
-use gpui_kit::component::{ActiveTheme, v_flex};
+use gpui_kit::component::{ActiveTheme, Icon, Sizable, h_flex, v_flex};
 use gpui_kit::*;
 
+use crate::app_page::AppPage;
 use crate::link::Link;
+use crate::nav::{self, Detail};
 use crate::page::Page;
 use crate::settings::{Settings, Switched};
 use crate::{deployments, nodes, projects};
@@ -17,17 +22,52 @@ pub struct Shell {
     link: Link,
     tab: usize,
     pages: [Option<AnyView>; TABS.len()],
+    detail: Option<(usize, AnyView)>, // one thing's page, over the tab it was opened from
     _switched: Option<Subscription>,
 }
 
 impl Shell {
-    pub fn new(link: Link) -> Self {
+    pub fn new(link: Link, cx: &mut Context<Self>) -> Self {
+        nav::init(cx.weak_entity(), cx);
         Shell {
             link,
             tab: 0,
             pages: Default::default(),
+            detail: None,
             _switched: None,
         }
+    }
+
+    pub fn open(&mut self, detail: Detail, window: &mut Window, cx: &mut Context<Self>) {
+        let link = self.link.clone();
+        let view: AnyView = match detail {
+            Detail::App(name) => cx.new(|cx| AppPage::new(name, link, window, cx)).into(),
+        };
+        self.detail = Some((self.tab, view));
+        cx.notify();
+    }
+
+    pub fn back(&mut self, cx: &mut Context<Self>) {
+        self.detail = None;
+        cx.notify();
+    }
+
+    /// What the tab shows: its page, or the page opened over it with a way back.
+    fn shown(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+        let Some((_, view)) = self.detail.clone().filter(|(t, _)| *t == self.tab) else {
+            return self.page(self.tab, window, cx).into_any_element();
+        };
+        let back = Button::new("back")
+            .ghost()
+            .small()
+            .icon(Icon::new(IconName::ArrowLeft))
+            .label(TABS[self.tab])
+            .on_click(cx.listener(|this, _, _, cx| this.back(cx)));
+        v_flex()
+            .size_full()
+            .child(h_flex().px_4().pt_2().child(back))
+            .child(div().flex_1().min_h_0().child(view))
+            .into_any_element()
     }
 
     fn select(&mut self, tab: usize, cx: &mut Context<Self>) {
@@ -59,6 +99,7 @@ impl Shell {
                 *page = None;
             }
         }
+        self.detail = None;
         cx.notify();
     }
 }
@@ -73,7 +114,7 @@ fn open(tab: usize, link: Link, cx: &mut App) -> AnyView {
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let page = self.page(self.tab, window, cx);
+        let page = self.shown(window, cx);
         let tabs = TabBar::new("pages")
             .underline()
             .px_4()
@@ -84,6 +125,6 @@ impl Render for Shell {
             .size_full()
             .bg(cx.theme().background)
             .child(tabs)
-            .child(page)
+            .child(div().flex_1().min_h_0().child(page)) // the page gets what the tabs leave
     }
 }
